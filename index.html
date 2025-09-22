@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anime Leaderboard</title>
   <style>
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -56,7 +57,7 @@
       margin: 20px 0;
       letter-spacing: 2px;
     }
-    select, button {
+    select, button, input[type="text"] {
       padding: 12px 20px;
       margin: 10px;
       border: none;
@@ -70,12 +71,12 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
-    select:hover, button:hover {
+    select:hover, button:hover, input[type="text"]:hover {
       background: linear-gradient(45deg, #2a2a2a, #3a2a3a);
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(0, 245, 255, 0.4);
     }
-    select:active, button:active {
+    select:active, button:active, input[type="text"]:active {
       transform: translateY(0);
     }
     .anime-list {
@@ -224,102 +225,125 @@
   <h1>🌸 Anime Leaderboard 🌸</h1>
   <p id="leaderboard-type"><strong>This Season’s Trending Anime</strong></p>
 
+  <input type="text" id="searchAnime" placeholder="🔍 Search anime (title or genre)" style="padding:12px 20px; margin:10px; border-radius:12px; border:none; background:#1a1a1a; color:#00f5ff; width:80%; max-width:400px;">
   <label for="genre">Choose Genre / All-Time:</label>
-<select id="genre">
-  <option value="">--All Genres--</option>
-  <option value="1">Action</option>
-  <option value="4">Comedy</option>
-  <option value="8">Drama</option>
-  <option value="10">Fantasy</option>
-  <option value="14">Horror</option>
-  <option value="22">Romance</option>
-  <option value="alltime">🌟 All-Time Top Airing</option>
-</select>
-
+  <select id="genre">
+    <option value="">--All Genres--</option>
+    <option value="1">Action</option>
+    <option value="4">Comedy</option>
+    <option value="8">Drama</option>
+    <option value="10">Fantasy</option>
+    <option value="14">Horror</option>
+    <option value="22">Romance</option>
+    <option value="alltime">🌟 All-Time Top Airing</option>
+  </select>
 
   <div class="anime-list" id="animeList"></div>
-
-  <button id="loadMore">Load More</button>
-
+  <div style="margin:20px;">
+    <button id="prevPage" style="display:none;">⬅ Previous</button>
+    <button id="nextPage">Next ➡</button>
+  </div>
 
   <div class="loading-spinner" id="loadingSpinner" style="display: none;">
     <div class="spinner"></div>
     <p>Loading awesome anime...</p>
   </div>
 
-  <script>
-    const animeList = document.getElementById("animeList");
-    const allTimeList = document.getElementById("allTimeList");
-    const genreSelect = document.getElementById("genre");
-    const leaderboardType = document.getElementById("leaderboard-type");
-    const loadMoreBtn = document.getElementById("loadMore");
+<script>
+const animeList = document.getElementById("animeList");
+const genreSelect = document.getElementById("genre");
+const searchInput = document.getElementById("searchAnime");
+const leaderboardType = document.getElementById("leaderboard-type");
+const prevBtn = document.getElementById("prevPage");
+const nextBtn = document.getElementById("nextPage");
 
-    let page = 1;
-    let currentGenre = "";
+let page = 1;
+let currentGenre = "";
+let currentSearch = "";
+let totalPages = 1;
 
-    // FETCH SEASONAL TRENDING ANIME
-    async function fetchSeasonAnime() {
+async function fetchAnime() {
+  animeList.innerHTML = "";
+  document.getElementById("loadingSpinner").style.display = "flex";
+
   let url = "";
+  const query = currentSearch.trim().toLowerCase();
 
-  if (currentGenre === "alltime") {
-    // Fetch all-time top airing anime
-    url = `https://api.jikan.moe/v4/top/anime?filter=airing&page=${page}&limit=20`;
-  } else if (currentGenre) {
-    // Genre selected → fetch airing anime in that genre
-    url = `https://api.jikan.moe/v4/anime?genres=${currentGenre}&status=airing&order_by=score&sort=desc&page=${page}&limit=20`;
+  if (query) {
+    url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=20&page=${page}`;
+    leaderboardType.innerHTML = `Search results for: "${query}"`;
   } else {
-    // Default seasonal trending
-    url = `https://api.jikan.moe/v4/seasons/now?page=${page}&limit=20`;
+    if (currentGenre === "alltime") {
+      url = `https://api.jikan.moe/v4/top/anime?page=${page}&limit=20`;
+      leaderboardType.innerHTML = "Showing: 🌟 All-Time Top Airing Anime";
+    } else if (currentGenre) {
+      url = `https://api.jikan.moe/v4/anime?genres=${currentGenre}&order_by=score&sort=desc&page=${page}&limit=20`;
+      const text = genreSelect.options[genreSelect.selectedIndex].text;
+      leaderboardType.innerHTML = `Showing: ${text}`;
+    } else {
+      url = `https://api.jikan.moe/v4/seasons/now?page=${page}&limit=20`;
+      leaderboardType.innerHTML = "This Season’s Trending Anime";
+    }
   }
 
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    totalPages = data.pagination ? data.pagination.last_visible_page : 1;
 
-  data.data.forEach(anime => {
-    const card = document.createElement("div");
-    card.className = "anime-card";
-    card.innerHTML = `
-      <img src="${anime.images.jpg.image_url}" alt="${anime.title}">
-      <h3>${anime.title_english || anime.title}</h3>
-      <p>Score: ${anime.score || "N/A"}</p>
-    `;
-    card.addEventListener("click", () => {
-      window.location.href = `details.html?id=${anime.mal_id}`;
+    data.data.forEach(anime => {
+      const card = document.createElement("div");
+      card.className = "anime-card";
+      card.innerHTML = `
+        <img src="${anime.images.jpg.image_url}" alt="${anime.title}">
+        <h3>${anime.title_english || anime.title}</h3>
+        <p>Score: ${anime.score || "N/A"}</p>
+      `;
+      card.addEventListener("click", () => {
+        window.location.href = `details.html?id=${anime.mal_id}`;
+      });
+      animeList.appendChild(card);
     });
-    animeList.appendChild(card);
-  });
+
+    prevBtn.style.display = page > 1 ? "inline-block" : "none";
+    nextBtn.style.display = page < totalPages ? "inline-block" : "none";
+  } catch (err) {
+    console.error(err);
+    leaderboardType.innerHTML = "Error loading anime. Try again!";
+  } finally {
+    document.getElementById("loadingSpinner").style.display = "none";
+  }
 }
 
-// Handle dropdown change
+// Event listeners
 genreSelect.addEventListener("change", () => {
-  animeList.innerHTML = "";
   page = 1;
   currentGenre = genreSelect.value;
-
-  if (currentGenre === "alltime") {
-    leaderboardType.innerHTML = "Showing: 🌟 All-Time Top Airing Anime";
-  } else if (currentGenre) {
-    const text = genreSelect.options[genreSelect.selectedIndex].text;
-    leaderboardType.innerHTML = `Showing: ${text} (This Season)`;
-  } else {
-    leaderboardType.innerHTML = "This Season’s Trending Anime";
-  }
-
-  fetchSeasonAnime();
+  currentSearch = "";
+  searchInput.value = "";
+  fetchAnime();
 });
 
+searchInput.addEventListener("input", () => {
+  page = 1;
+  currentSearch = searchInput.value;
+  currentGenre = "";
+  genreSelect.value = "";
+  fetchAnime();
+});
 
+nextBtn.addEventListener("click", () => {
+  if (page < totalPages) page++;
+  fetchAnime();
+});
 
+prevBtn.addEventListener("click", () => {
+  if (page > 1) page--;
+  fetchAnime();
+});
 
-    // Initial fetch
-    fetchSeasonAnime();
-
-
-    // Load more seasonal anime
-    loadMoreBtn.addEventListener("click", () => {
-      page++;
-      fetchSeasonAnime();
-    });
-  </script>
+// Initial fetch
+fetchAnime();
+</script>
 </body>
 </html>
