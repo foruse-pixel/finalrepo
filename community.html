@@ -1,156 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Anime Community</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f4f9;
-    }
-    header {
-      background: #222;
-      color: white;
-      padding: 10px 20px;
-    }
-    nav a {
-      margin-right: 15px;
-      color: white;
-      text-decoration: none;
-    }
-    .post {
-      background: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .post h3 {
-      margin: 0 0 10px;
-    }
-    .comments {
-      margin-top: 15px;
-      padding-left: 15px;
-      border-left: 3px solid #ddd;
-    }
-    .comments h4 {
-      margin: 0 0 10px;
-      font-size: 14px;
-      color: #555;
-    }
-    .comments ul {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 10px;
-    }
-    .comments li {
-      background: #f9f9f9;
-      padding: 5px 10px;
-      margin-bottom: 5px;
-      border-radius: 5px;
-    }
-    input[type="text"] {
-      padding: 5px;
-      width: 70%;
-    }
-    button {
-      padding: 6px 10px;
-      margin-left: 5px;
-      border: none;
-      border-radius: 5px;
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Anime Community</title>
+<style>
+/* --- GENERAL STYLES --- */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f4f4f9;
+  color: #333;
+}
+header {
+  background: #222;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header h1 {
+  margin: 0;
+}
+nav a {
+  margin-left: 15px;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* --- NEW POST SECTION --- */
+#newPostSection {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  animation: fadeIn 0.5s ease;
+}
+#newPostSection input, #newPostSection textarea, #newPostSection select {
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+#submitPost, button {
+  padding: 8px 15px;
+  margin-top: 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+#submitPost:hover, button:hover {
+  background: #0056b3;
+}
+
+/* --- POST CARDS --- */
+.post {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: all 0.3s ease, transform 0.3s ease;
+  animation: fadeInUp 0.5s ease;
+}
+.post:hover {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transform: translateY(-3px);
+}
+.post h3 {
+  margin: 0 0 10px;
+}
+.likeBtn {
+  background: #ff4757;
+  margin-right: 10px;
+}
+.likeBtn:hover {
+  background: #ff6b81;
+}
+.comments {
+  margin-top: 10px;
+  padding-left: 15px;
+  border-left: 3px solid #ddd;
+}
+.comments input {
+  width: 80%;
+  padding: 5px;
+  margin-top: 5px;
+}
+.comments button {
+  padding: 5px 10px;
+  margin-top: 5px;
+}
+.pollOptionText {
+  margin-bottom: 5px;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
 </head>
 <body>
-  <header>
-    <nav>
-      <a href="index.html">🏠 Home</a>
-      <a href="videos.html">🎬 Videos</a>
-      <a href="community.html">💬 Community</a>
-    </nav>
-  </header>
 
+<header>
   <h1>Anime Community</h1>
-  <p>Vote, comment, and discuss your favorite anime!</p>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+    <a href="videos.html">🎬 Videos</a>
+    <a href="community.html">💬 Community</a>
+  </nav>
+</header>
 
-  <div id="posts"></div>
+<section id="newPostSection">
+  <h2>Create New Post</h2>
+  
+  <label for="postType">Post Type:</label>
+  <select id="postType" onchange="updateFormFields()">
+    <option value="text">Text Post</option>
+    <option value="poll">Poll Post</option>
+  </select>
 
-  <script>
-    // Fake posts (later we can make these user-generated)
-    const posts = [
-      { id: "op", title: "One Piece Opening", votes: 0 },
-      { id: "aot", title: "Attack on Titan Ending", votes: 0 },
-      { id: "ds", title: "Demon Slayer Fight Scene", votes: 0 }
-    ];
+  <div id="textFields">
+    <input type="text" id="postTitle" placeholder="Post Title">
+    <textarea id="postContent" rows="3" placeholder="Your content..."></textarea>
+  </div>
 
-    let comments = {}; // Store comments for each post
+  <div id="pollFields" style="display:none;">
+    <input type="text" id="pollTitle" placeholder="Poll Title">
+    <div id="pollOptionsContainer">
+      <input type="text" class="pollOption" placeholder="Option 1">
+      <input type="text" class="pollOption" placeholder="Option 2">
+    </div>
+    <button onclick="addPollOption()">Add Option</button>
+  </div>
 
-    function renderPosts() {
-      const container = document.getElementById("posts");
-      container.innerHTML = "";
+  <button id="submitPost">Submit Post</button>
+</section>
 
-      posts.forEach(post => {
-        const div = document.createElement("div");
-        div.className = "post";
-        div.innerHTML = `
-          <h3>${post.title}</h3>
-          <p>Votes: <span id="votes-${post.id}">${post.votes}</span></p>
-          <button onclick="vote('${post.id}')">Vote</button>
+<section id="postsContainer"></section>
 
-          <div class="comments">
-            <h4>Comments</h4>
-            <ul id="comments-${post.id}"></ul>
-            <input type="text" id="input-${post.id}" placeholder="Write a comment...">
-            <button onclick="addComment('${post.id}')">Post</button>
-          </div>
-        `;
-        container.appendChild(div);
+<script>
+let posts = [];
+let comments = {};
 
-        renderComments(post.id);
+function updateFormFields() {
+  const type = document.getElementById('postType').value;
+  document.getElementById('textFields').style.display = type === 'text' ? 'block' : 'none';
+  document.getElementById('pollFields').style.display = type === 'poll' ? 'block' : 'none';
+}
+
+function addPollOption() {
+  const container = document.getElementById('pollOptionsContainer');
+  const count = container.querySelectorAll('.pollOption').length + 1;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'pollOption';
+  input.placeholder = `Option ${count}`;
+  container.appendChild(input);
+}
+
+document.getElementById('submitPost').addEventListener('click', () => {
+  const type = document.getElementById('postType').value;
+  let newPost = { type, likes: 0, id: Date.now() };
+
+  if (type === 'text') {
+    newPost.title = document.getElementById('postTitle').value;
+    newPost.content = document.getElementById('postContent').value;
+  } else if (type === 'poll') {
+    newPost.title = document.getElementById('pollTitle').value;
+    newPost.options = Array.from(document.querySelectorAll('.pollOption'))
+                          .map(opt => opt.value).filter(Boolean);
+    newPost.votes = new Array(newPost.options.length).fill(0);
+  }
+
+  posts.unshift(newPost);
+  renderPosts();
+});
+
+function renderPosts() {
+  const container = document.getElementById('postsContainer');
+  container.innerHTML = '';
+  posts.forEach(post => {
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `<h3>${post.title}</h3>`;
+
+    if (post.type === 'text') {
+      div.innerHTML += `<p>${post.content}</p>`;
+    } else if (post.type === 'poll') {
+      post.options.forEach((opt, i) => {
+        div.innerHTML += `<div class="pollOptionText">${opt} - ${post.votes[i]} votes 
+        <button onclick="votePoll(${post.id}, ${i})">Vote</button></div>`;
       });
     }
 
-    function vote(postId) {
-      const post = posts.find(p => p.id === postId);
-      post.votes++;
-      document.getElementById("votes-" + postId).textContent = post.votes;
-      alert("You voted for: " + post.title);
-    }
+    div.innerHTML += `
+      <button class="likeBtn" onclick="likePost(${post.id})">Like (${post.likes})</button>
+      <div class="comments">
+        <input type="text" placeholder="Write a comment..." id="commentInput-${post.id}">
+        <button onclick="addComment(${post.id})">Post Comment</button>
+        <ul id="commentsList-${post.id}"></ul>
+      </div>
+    `;
+    container.appendChild(div);
+    renderComments(post.id);
+  });
+}
 
-    function addComment(postId) {
-      const input = document.getElementById("input-" + postId);
-      const text = input.value.trim();
-      if (!text) return;
+function likePost(postId) {
+  const post = posts.find(p => p.id === postId);
+  post.likes++;
+  renderPosts();
+}
 
-      if (!comments[postId]) comments[postId] = [];
-      comments[postId].push(text);
+function votePoll(postId, index) {
+  const post = posts.find(p => p.id === postId);
+  post.votes[index]++;
+  renderPosts();
+}
 
-      input.value = "";
-      renderComments(postId);
-    }
+function addComment(postId) {
+  const input = document.getElementById(`commentInput-${postId}`);
+  const text = input.value.trim();
+  if (!text) return;
+  if (!comments[postId]) comments[postId] = [];
+  comments[postId].push(text);
+  input.value = '';
+  renderComments(postId);
+}
 
-    function renderComments(postId) {
-      const list = document.getElementById("comments-" + postId);
-      list.innerHTML = "";
-      if (comments[postId]) {
-        comments[postId].forEach(c => {
-          const li = document.createElement("li");
-          li.textContent = c;
-          list.appendChild(li);
-        });
-      }
-    }
+function renderComments(postId) {
+  const list = document.getElementById(`commentsList-${postId}`);
+  list.innerHTML = '';
+  if (comments[postId]) {
+    comments[postId].forEach(c => {
+      const li = document.createElement('li');
+      li.textContent = c;
+      list.appendChild(li);
+    });
+  }
+}
+</script>
 
-    // Load posts on start
-    renderPosts();
-  </script>
 </body>
 </html>
