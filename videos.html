@@ -318,153 +318,125 @@
     <a href="index.html">🏆 Home</a>
     <a href="videos.html">🎥 Videos</a>
     <a href="upload.html">⬆️ Upload</a>
+    <a href="community.html">💬 Community</a>
   </nav>
 
-  <div class="videos-container">
-    <div class="stats-bar" id="statsBar" style="display: none;">
-      <div class="stat-item">
-        <div class="stat-number" id="videoCount">0</div>
-        <div class="stat-label">Videos</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="totalSize">0</div>
-        <div class="stat-label">Total Size</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number" id="latestUpload">-</div>
-        <div class="stat-label">Latest Upload</div>
-      </div>
-    </div>
-    
-    <div class="video-grid" id="videoGrid"></div>
-    
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <div class="empty-icon">📹</div>
-      <div class="empty-message">No videos uploaded yet</div>
-      <div class="empty-submessage">Start building your anime video collection!</div>
-      <a href="upload.html" class="upload-link">Upload Your First Video</a>
-    </div>
+  <!-- Search Bar -->
+  <div style="margin:20px 0;">
+    <input type="text" id="searchInput" placeholder="Search anime trailers..." style="padding:10px;width:70%;">
+    <button onclick="searchYouTube()" style="padding:10px;">Search</button>
   </div>
 
+  <!-- Shorts Feed -->
+  <div id="shortsFeed" style="scroll-snap-type:y mandatory;overflow-y:auto;height:80vh;">
+    <!-- videos will be injected here -->
+  </div>
+
+  <!-- Search Results -->
+  <div class="video-grid" id="searchResults" style="display:none;"></div>
+
   <script>
-    const videoGrid = document.getElementById('videoGrid');
-    const emptyState = document.getElementById('emptyState');
-    const statsBar = document.getElementById('statsBar');
-    
-    function formatFileSize(bytes) {
-      if (bytes === 0) return '0 B';
-      const k = 1024;
-      const sizes = ['B', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-      
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return diffMins + 'm ago';
-      if (diffHours < 24) return diffHours + 'h ago';
-      if (diffDays < 7) return diffDays + 'd ago';
-      return date.toLocaleDateString();
-    }
-    
-    function deleteVideo(index) {
-      if (confirm('Are you sure you want to delete this video?')) {
-        let videos = JSON.parse(localStorage.getItem('videos') || '[]');
-        
-        // Revoke the object URL to free memory
-        if (videos[index] && videos[index].url) {
-          URL.revokeObjectURL(videos[index].url);
-        }
-        
-        videos.splice(index, 1);
-        localStorage.setItem('videos', JSON.stringify(videos));
-        loadVideos();
-      }
-    }
-    
-    function updateStats(videos) {
-      const videoCount = document.getElementById('videoCount');
-      const totalSize = document.getElementById('totalSize');
-      const latestUpload = document.getElementById('latestUpload');
-      
-      videoCount.textContent = videos.length;
-      
-      const totalBytes = videos.reduce((sum, video) => sum + (video.size || 0), 0);
-      totalSize.textContent = formatFileSize(totalBytes);
-      
-      if (videos.length > 0) {
-        const latest = videos[videos.length - 1];
-        if (latest.uploadTime) {
-          latestUpload.textContent = formatDate(latest.uploadTime);
-        } else {
-          latestUpload.textContent = 'Unknown';
-        }
-      } else {
-        latestUpload.textContent = '-';
-      }
-      
-      statsBar.style.display = videos.length > 0 ? 'flex' : 'none';
+    const apiKey = "AIzaSyAvJLAAUZKsjUhacEuvvGfjaBFK7XSudRs";
+    const shortsFeed = document.getElementById("shortsFeed");
+    const searchResults = document.getElementById("searchResults");
+    const searchInput = document.getElementById("searchInput");
+
+    // Load uploaded + YouTube shorts into feed
+    async function loadFeed() {
+      shortsFeed.innerHTML = "";
+
+      // 1. Load local uploaded videos
+      const localVideos = JSON.parse(localStorage.getItem("videos") || "[]");
+      localVideos.forEach(video => {
+        const section = document.createElement("section");
+        section.style = "height:80vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;";
+        section.innerHTML = `
+          <video src="${video.url}" controls muted style="max-height:100%;max-width:100%;"></video>
+        `;
+        shortsFeed.appendChild(section);
+      });
+
+      // 2. Load YouTube anime trailers/recommendations
+      const query = "anime official trailer recommendation";
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(query)}&key=${apiKey}`);
+      const data = await response.json();
+
+      data.items.forEach(item => {
+        const videoId = item.id.videoId;
+        const section = document.createElement("section");
+        section.style = "height:80vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;";
+        section.innerHTML = `
+          <iframe width="100%" height="100%" 
+            src="https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&playsinline=1"
+            frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+          </iframe>
+        `;
+        shortsFeed.appendChild(section);
+      });
+
+      enableAutoPlay();
     }
 
-    function loadVideos() {
-      const videos = JSON.parse(localStorage.getItem('videos') || '[]');
-      
-      if (videos.length === 0) {
-        videoGrid.innerHTML = '';
-        emptyState.style.display = 'block';
-        updateStats(videos);
-        return;
-      }
+    // Auto play/pause only the video in view
+    function enableAutoPlay() {
+      const sections = shortsFeed.querySelectorAll("section");
 
-      emptyState.style.display = 'none';
-      videoGrid.innerHTML = '';
-      updateStats(videos);
-      
-      videos.forEach((video, index) => {
-        // Handle both old format (just URL string) and new format (object)
-        const videoUrl = typeof video === 'string' ? video : video.url;
-        const videoName = typeof video === 'string' ? `Video ${index + 1}` : (video.name || `Video ${index + 1}`);
-        const videoSize = typeof video === 'string' ? 'Unknown size' : formatFileSize(video.size || 0);
-        const uploadTime = typeof video === 'string' ? 'Unknown date' : formatDate(video.uploadTime || new Date().toISOString());
-        
-        const videoCard = document.createElement('div');
-        videoCard.className = 'video-card loading-shimmer';
-        videoCard.innerHTML = `
-          <video controls src="${videoUrl}" preload="metadata">
-            Your browser does not support the video tag.
-          </video>
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          const video = entry.target.querySelector("video");
+          const iframe = entry.target.querySelector("iframe");
+
+          if (entry.isIntersecting) {
+            if (video) video.play();
+            if (iframe) {
+              iframe.src = iframe.src.replace("autoplay=0", "autoplay=1");
+            }
+          } else {
+            if (video) video.pause();
+            if (iframe) {
+              iframe.src = iframe.src.replace("autoplay=1", "autoplay=0");
+            }
+          }
+        });
+      }, { threshold: 0.8 });
+
+      sections.forEach(section => observer.observe(section));
+    }
+
+    // Search YouTube instead of feed
+    async function searchYouTube() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      shortsFeed.style.display = "none";
+      searchResults.style.display = "grid";
+      searchResults.innerHTML = "";
+
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(query)}&key=${apiKey}`);
+      const data = await response.json();
+
+      data.items.forEach(item => {
+        const videoId = item.id.videoId;
+        const card = document.createElement("div");
+        card.className = "video-card";
+        card.innerHTML = `
+          <iframe width="100%" height="200"
+            src="https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0"
+            frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+          </iframe>
           <div class="video-info">
-            <div class="video-title">${videoName}</div>
-            <div class="video-meta">
-              <span>📊 ${videoSize}</span>
-              <span>📅 ${uploadTime}</span>
-            </div>
-            <button class="delete-btn" onclick="deleteVideo(${index})">🗑️ Delete</button>
+            <div class="video-title">${item.snippet.title}</div>
           </div>
         `;
-        
-        // Remove shimmer effect once video metadata is loaded
-        const videoElement = videoCard.querySelector('video');
-        videoElement.addEventListener('loadedmetadata', () => {
-          videoCard.classList.remove('loading-shimmer');
-        });
-        
-        videoGrid.appendChild(videoCard);
+        searchResults.appendChild(card);
       });
     }
 
-    // Load videos when page loads
-    loadVideos();
-    
-    // Auto-refresh every 5 seconds to catch new uploads
-    setInterval(loadVideos, 5000);
+    // Load feed by default
+    loadFeed();
   </script>
 </body>
 </html>
+
+
+  
