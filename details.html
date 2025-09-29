@@ -405,6 +405,23 @@
             </div>
           ` : ''}
         `;
+        <!-- Add this inside your <script> fetchAnimeDetails function, after rendering synopsis, below genre tags -->
+let trailerHtml = '';
+if (anime.trailer && anime.trailer.url) {
+  trailerHtml = `
+    <div class="synopsis-card">
+      <h3 class="synopsis-title">🎬 Trailer</h3>
+      <iframe width="100%" height="400" 
+        src="${anime.trailer.url.replace('watch?v=', 'embed/')}" 
+        title="Trailer for ${anime.title}" 
+        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowfullscreen>
+      </iframe>
+    </div>
+  `;
+}
+content.innerHTML += trailerHtml;
+
 
       } catch (err) {
         content.innerHTML = `
